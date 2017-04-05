@@ -1,0 +1,181 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <link rel="stylesheet" href="https://maxcdn.bootstrapcdn.com/bootstrap/3.3.7/css/bootstrap.min.css">
+  <script src="https://ajax.googleapis.com/ajax/libs/jquery/3.2.0/jquery.min.js"></script>
+  <script src="https://maxcdn.bootstrapcdn.com/bootstrap/3.3.7/js/bootstrap.min.js"></script>
+</head>
+<body>
+
+<div class="container">
+  <h2>Testing MovieApp</h2>
+  <!-- Trigger the modal with a button -->
+  <button type="button" class="btn btn-info btn-lg" data-toggle="modal" data-target="#myModal">Open Modal</button>
+
+  <!-- Modal -->
+  <div class="modal fade" id="myModal" role="dialog">
+    <div class="modal-dialog">
+    
+      <!-- Modal content-->
+      <div class="modal-content">
+        <div class="modal-header">
+          <button type="button" class="close" data-dismiss="modal">&times;</button>
+          <h4 class="modal-title">header</h4>
+        </div>
+        <div class="modal-body">
+          <p>nonetext.</p>
+        </div>
+        <div class="modal-footer">
+          <button type="button" class="btn btn-default" data-dismiss="modal">Close</button>
+        </div>
+      </div>
+      
+    </div>
+  </div>
+  
+</div>
+<script>
+      var ratingScore = 5;
+
+      function getMovie(movie_id) {
+        return new Promise(function(resolve, reject) {
+          var xhr = new XMLHttpRequest();
+          xhr.open('GET', "http://localhost:5000/movies/" + movie_id, true);
+          xhr.send();
+          xhr.onreadystatechange = function () {
+            if (this.readyState == 4 && this.status == 200) {
+              resolve(JSON.parse(this.responseText));
+            }
+            if (this.readyState == 4 && this.status == 404) {
+              reject("Not Found");
+            }
+          }
+        });
+      }
+
+      function load() {
+        var urlParams = new URLSearchParams(window.location.search);
+        var movie_id;
+        if(urlParams.has('id')) {
+          movie_id = urlParams.get('id');
+          var movie = getMovie(movie_id).then(function(result) {
+            makeProfile(result);
+            listReviews(result);
+          });
+        }
+      }
+            function getReview(review_id) {
+        return new Promise(function(resolve, reject) {
+          var xhr = new XMLHttpRequest();
+          xhr.open('GET', "http://localhost:5000/reviews/" + review_id, true);
+          xhr.send();
+          xhr.onreadystatechange = function () {
+            if (this.readyState == 4 && this.status == 200) {
+              resolve(JSON.parse(this.responseText));
+            }
+            if (this.readyState == 4 && this.status == 404) {
+              reject("Not Found");
+            }
+          }
+        });
+      } 
+
+    function makeProfile(movie) {
+      var container = document.getElementById("profile");
+
+      var h1 = document.createElement("h1");
+      var imagePath = movie["poster"] ? "static/images/" + movie["id"] + ".jpg" : "static/images/noimg.png"
+      var title = document.createElement("p");
+      var overview = document.createElement("p");
+      var averageRating = document.createElement("p");
+      var image = document.createElement("img");
+      var link = document.createElement("a");
+      var detailsLink = document.createElement("a");
+      var mediaDiv = document.createElement("div");
+      var mediaObject = document.createElement("div");
+      var mediaBody = document.createElement("div");
+
+      mediaDiv.classList.add("media");
+      mediaObject.classList.add("media-left", "media-middle");
+      mediaBody.classList.add("media-body");
+      
+      image.setAttribute("src", imagePath);
+      image.classList.add("media-object");
+      
+      detailsLink.appendChild(image);
+
+      mediaObject.appendChild(detailsLink);
+
+      h1.innerHTML = "Profile";
+
+      title.innerHTML = "<b>Title: </b>" + movie["title"];
+      overview.innerHTML = "<b>Overview: </b>" + movie["description"];
+      averageRating.innerHTML = "<b>Average Rating: </b>" + movie["average"];
+
+      mediaBody.appendChild(title);
+      mediaBody.appendChild(overview);
+      mediaBody.appendChild(averageRating);
+
+      mediaDiv.appendChild(mediaObject);
+      mediaDiv.appendChild(mediaBody);
+      
+      container.appendChild(h1);
+      container.appendChild(mediaDiv);
+    }
+        function listReviews(movie) {
+      var container = document.getElementById("reviews");
+      var h1 = document.createElement("h1");
+
+      if(movie.reviews.length > 0) {
+        var ul = document.createElement('ul');
+
+        ul.classList.add("list-group");
+        for(var i = 0; i < movie.reviews.length; i++) {
+          var review = movie.reviews[i];
+          var liReview = document.createElement("li");
+          var liSpan = document.createElement("span");
+          
+          liReview.classList.add("list-group-item");
+          liSpan.classList.add("badge")
+
+          liReview.innerHTML = review["description"].length > 150 ? 
+            review["description"].substring(0, 90) + "..." : review["description"];
+
+          liReview.onclick = function(event) {
+            var id = this.getAttribute("id");
+            var review = getReview(id);
+            review.then(function(result) {
+              var modalBody = document.getElementById("modal-body");
+              var modalTitle = document.getElementById("modal-title");
+              var modalRating = document.getElementById("modal-rating");
+
+              modalBody.innerHTML = result["description"]
+              modalTitle.innerHTML = "Review by " + result["user"]
+              modalRating.innerHTML = "Rating: " + result["rating"]
+
+              $('#modalTest').modal('show')
+            });
+          }
+
+          liSpan.innerHTML = review["rating"] + " out of " + ratingScore;
+
+          liReview.setAttribute("id", review["id"])
+
+          liReview.appendChild(liSpan);
+
+          ul.appendChild(liReview)
+        }
+        h1.innerHTML = "Reviews (" + movie.reviews.length + ")" 
+        container.appendChild(h1);
+        container.appendChild(ul);
+      } else {
+        h1.innerHTML = "No reviews yet!"
+        container.appendChild(h1);
+      }
+    }
+    load()
+  </script>
+</body>
+</htm

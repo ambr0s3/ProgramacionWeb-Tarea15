@@ -1,0 +1,151 @@
+<html>
+<head>
+  <link rel="stylesheet" href="https://maxcdn.bootstrapcdn.com/bootstrap/3.3.7/css/bootstrap.min.css" integrity="sha384-BVYiiSIFeK1dGmJRAkycuHAHRg32OmUcww7on3RYdg4Va+PmSTsz/K68vbdEjh4u" crossorigin="anonymous">
+  <style>
+    h1 {
+      font-size: 30px;
+    }
+    p {
+      text-align: right;
+      margin-right: 15px;
+      margin-top: 5px;
+    }
+    ul {
+      border: 3px solid black;
+    }
+    img {
+      width: 150px;
+      height: 150px;
+    }
+  </style>
+</head>
+<body>
+  <p>Escribir un Review <a href="review.html"><b>Hacer click aqui</b></a></p>
+  <div id="content" class="container-fluid"></div>
+  <script>
+      function getmovieAppeview(movieName) {
+        return new Promise(function(resolve, reject) {
+          var xhr = new XMLHttpRequest();
+          xhr.open('GET', "http://localhost:5000/reviews/" + encodeURI(movieName), true);
+          xhr.send();
+          xhr.onreadystatechange = function () {
+            if (this.readyState == 4 && this.status == 200) {
+              resolve(JSON.parse(this.responseText));
+            }
+            if (this.readyState == 4 && this.status == 404) {
+              reject("Not Found");
+            }
+          }
+        });
+      } 
+      function getReviewedMovies() {
+        return new Promise(function(resolve, reject) {
+          var xhr = new XMLHttpRequest();
+          xhr.open('GET', "http://localhost:5000/movies/reviewed", true);
+          xhr.send();
+          xhr.onreadystatechange = function () {
+            if (this.readyState == 4 && this.status == 200) {
+              resolve(JSON.parse(this.responseText));
+            }
+            if (this.readyState == 4 && this.status == 404) {
+              reject("Not Found");
+            }
+          }
+        });
+      }
+      function showMovies() {
+        var reviews = []
+        var movies = getReviewedMovies();
+        movies.then(function(result) {
+          if (result.length > 0) {
+            var sortedMovies = result.sort(function(movieOne, movieTwo) {
+              var movieOneTitle = movieOne.title.toLowerCase();
+              var movieTwoTitle = movieTwo.title.toLowerCase();
+              if (movieOneTitle < movieTwoTitle) { return -1 } 
+              if (movieOneTitle > movieTwoTitle) { return 1 }
+              return 0;
+            });
+            for (var i = 0; i < sortedMovies.length; i++) {
+              reviews.push(getmovieAppeview(sortedMovies[i]["title"]));
+            }
+            Promise.all(reviews).then(function(values) {
+              for (var i = 0; i < sortedMovies.length; i++) {
+                sortedMovies["average"] = values[i]["rating"]
+              }
+              makeMovieList(sortedMovies);
+            })
+          } else {
+            var container = document.getElementById("content")
+            var heading = document.createElement("h1");
+            heading.innerHTML = "No movies with reviews. Please use button up top."
+            container.appendChild(heading);
+          }
+        });
+      }
+      
+    function makeMovieList(movies) {
+      var container = document.getElementById("content")
+
+      for (var i = 0; i < movies.length; i++) {
+        var url = "http://localhost:5000/reviews/" + encodeURI(movies[i]["title"]);
+        var imagePath = movies[i]["poster"] ? "static/images/" + movies[i]["id"] + ".jpg" : "static/images/noimg.png"
+        var ul = document.createElement('ul');
+        var liImage = document.createElement("li");
+        var liDescription = document.createElement("li");
+        var dl = document.createElement("dl");
+        var dtTitle = document.createElement("dt");
+        var dtOverview = document.createElement("dt");
+        var dtReview = document.createElement("dt");
+        var dtAverageRating = document.createElement("dt");
+        var ddTitle = document.createElement("dd");
+        var ddOverview = document.createElement("dd");
+        var ddReview = document.createElement("dd");
+        var ddAverageRating = document.createElement("dd");
+        var image = document.createElement("img");
+        var link = document.createElement("a");
+        var detailsLink = document.createElement("a");
+
+        ul.classList.add("list-inline")
+        dl.classList.add("dl-horizontal")
+        
+        image.setAttribute("src", imagePath);
+        
+        detailsLink.setAttribute("href", "details.html?id=" + movies[i]["id"]);
+        detailsLink.appendChild(image);
+
+        link.setAttribute("href", url);
+        link.innerHTML = url;
+
+        dtTitle.innerHTML = "Title";
+        dtOverview.innerHTML = "Overview";
+        dtReview.innerHTML = "Review";
+        dtAverageRating.innerHTML = "Average Rating";
+        ddTitle.innerHTML = movies[i]["title"];
+        ddOverview.innerHTML = movies[i]["description"].length > 150 ? 
+          movies[i]["description"].substring(0, 90) + "..." : movies[i]["description"]; 
+        ddAverageRating.innerHTML = movies[i]["average"];
+
+        ddReview.appendChild(link);
+
+        dl.appendChild(dtTitle);
+        dl.appendChild(ddTitle);
+        dl.appendChild(dtOverview);
+        dl.appendChild(ddOverview);
+        dl.appendChild(dtReview);
+        dl.appendChild(ddReview);
+        dl.appendChild(dtAverageRating);
+        dl.appendChild(ddAverageRating);
+
+        liImage.appendChild(detailsLink);
+        liDescription.appendChild(dl);
+
+        ul.appendChild(liImage);
+        ul.appendChild(liDescription);
+
+        container.appendChild(ul);
+      }
+    }
+    showMovies();
+  </script>
+</body>
+</html>
